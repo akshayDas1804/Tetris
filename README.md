@@ -33,14 +33,15 @@ brew install ncurses
 ```
 
 ### 🫠 **Windows (using PDCurses)**
+1. Navigate to Tetris-All-OS directory.
 
-1. Download or clone [PDCurses](https://github.com/wmcbrine/PDCurses) :
+2. Download or clone [PDCurses](https://github.com/wmcbrine/PDCurses) :
    
 ```bash
 git clone https://github.com/wmcbrine/PDCurses
 ```
-2. Open **MSYS2 MinGW 64-bit shell** (MinGW Terminal)
-3. Build PDCurses:
+3. Open **MSYS2 MinGW 64-bit shell** (MinGW Terminal)
+4. Build PDCurses:
 
 ```bash
 cd /path/to/PDCurses/wincon
