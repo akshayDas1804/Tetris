@@ -5,7 +5,7 @@ This is a console-based implementation of the classic **Tetris** game, developed
 ## Project Structure
 
 ```
-Cpp-Tetris-Game
+Unix
 │
 ├── include
 │   ├── block.h
