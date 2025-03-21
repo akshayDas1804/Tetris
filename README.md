@@ -44,7 +44,7 @@ git clone https://github.com/wmcbrine/PDCurses
    
 4. Build PDCurses:
 
-**MYSY2** :
+**MYSY2** 
 ```bash
 cd PDCurses/wincon
 make
@@ -68,7 +68,7 @@ Navigate to Tetris-All-OS directory.
 
 Poweshell (Recommended):
 
-```bash
+```powershell
 g++ (Get-ChildItem src\*.cpp) -o tetris.exe -Iinclude -IPDCurses -LPDCurses\wincon -l:pdcurses.a
 ```
 In case that does not work, try :
@@ -86,14 +86,6 @@ g++ src/*.cpp -o tetris.exe -Iinclude -IPDCurses -LPDCurses/wincon -l:pdcurses.a
 g++ -std=c++17 src/*.cpp -Iinclude -lncurses -o tetris
 ./tetris
 ```
-
-### 🫠 Windows 
-
-```powershell
-g++ (Get-ChildItem src\*.cpp) -o tetris.exe -Iinclude -IPDCurses -LPDCurses\wincon -l:pdcurses.a
-.\tetris.exe
-```
-
 ---
 
 ## 🎮 Controls
