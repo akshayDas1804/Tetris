@@ -54,7 +54,9 @@ make
 ## 🚀 How to Compile and Run
 
 
-### 🫠 Windows (PowerShell)
+### 🫠 Windows 
+
+Navigate to Tetris-All-OS directory.
 
 Poweshell (Recommended):
 
