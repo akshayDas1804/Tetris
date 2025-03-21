@@ -41,6 +41,7 @@ brew install ncurses
 git clone https://github.com/wmcbrine/PDCurses
 ```
 3. Open **MSYS2 MinGW 64-bit shell** (MinGW Terminal)
+   
 4. Build PDCurses:
 
 ```bash
