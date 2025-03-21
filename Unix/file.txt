@@ -1,0 +1,1280 @@
+#include "block.h"
+#include "colours.h"
+#include <vector>
+#include <iostream>
+#include <ncurses.h>
+
+Block::Block()
+{
+    cellSize = 30;
+    rotationState = 0;
+    rowOffset = 0;
+    columnOffset = 0;
+}
+
+void Block::Draw(int startY, int startX) {
+    std::vector<Position> tiles = GetCellPositions();
+    
+    for (Position item : tiles) {
+        if (item.row >= 0 && item.row < 20 && item.column >= 0 && item.column < 10) {
+            move(startY + item.row, startX + (item.column * 2));
+            attron(COLOR_PAIR(id)); 
+            addch('#');
+            attroff(COLOR_PAIR(id));
+        }
+    }
+}
+
+void Block::Move(int rows, int columns)
+{
+    rowOffset += rows;
+    columnOffset += columns;
+}
+
+std::vector<Position> Block::GetCellPositions()
+{
+    std::vector<Position> tiles = cells[rotationState];
+    std::vector<Position> movedTiles;
+    for (Position item : tiles) {
+        movedTiles.push_back({item.row + rowOffset, item.column + columnOffset});
+    }
+    return movedTiles;
+}
+
+void Block::Rotate()
+{
+    rotationState = (rotationState + 1) % cells.size();
+}
+
+void Block::UndoRotation()
+{
+    rotationState = (rotationState - 1 + cells.size()) % cells.size();
+}
+#include "colours.h"
+
+// ✅ Define standard colors & assign ncurses IDs
+const Colours pink       = {255, 105, 180, 11};  
+const Colours green      = { 47, 230,  23, 2 };
+const Colours red        = {232,  18,  18, 3 };
+const Colours orange     = {226, 116,  17, 4 };  
+const Colours yellow     = {237, 234,   4, 5 };
+const Colours purple     = {166,   0, 247, 6 };
+const Colours cyan       = { 21, 204, 209, 7 };
+const Colours blue       = { 13,  64, 216, 8 };
+const Colours lightBlue  = { 59,  85, 162, 9 };
+const Colours darkBlue   = { 44,  44, 127, 10 };
+
+std::vector<Colours> GetCellColours() {
+    return {pink, green, red, orange, yellow, purple, cyan, blue, lightBlue, darkBlue};
+}
+#include "game.h"
+#include <random>
+#include <iostream>
+#include <unistd.h>  // For usleep()
+#include <ncurses.h> // For non-blocking input with ncurses
+#include <algorithm> // Include for shuffle
+#include <thread>    // For std::this_thread::sleep_for
+#include <chrono>    // For std::chrono::seconds
+#include <random>
+
+Game::Game(int startSpeed, Leaderboard *lb, string name)
+{
+    leaderboard = lb;
+    grid = Grid();
+    blocks = GetAllBlocks();
+    currentBlock = GetRandomBlock();
+    nextBlock = GetRandomBlock();
+    gameOver = false;
+    score = 0;
+    level = 1;                                    // ✅ Start at level 1
+    totalRowsCleared = 0;                         // ✅ Initialize cleared rows counter
+    dropSpeed = chrono::milliseconds(startSpeed); // ✅ Initial drop speed
+    username = name;
+}
+
+Game::~Game()
+{
+    endwin(); // Restore terminal settings
+}
+
+Block Game::GetRandomBlock()
+{
+    if (blocks.empty())
+    {
+        blocks = GetAllBlocks();
+    }
+    int randomIndex = rand() % blocks.size();
+    Block block = blocks[randomIndex];
+    blocks.erase(blocks.begin() + randomIndex);
+    return block;
+}
+
+std::vector<Block> Game::GetAllBlocks()
+{
+    std::vector<Block> blocks = {IBlock(), JBlock(), LBlock(), OBlock(), SBlock(), TBlock(), ZBlock()};
+
+    std::random_device rd;
+    std::mt19937 g(rd());                          // ✅ Use a better random number generator
+    std::shuffle(blocks.begin(), blocks.end(), g); // ✅ Correct shuffle usage
+
+    return blocks;
+}
+
+void Game::Draw()
+{
+    clear();
+
+    int termHeight, termWidth;
+    getmaxyx(stdscr, termHeight, termWidth);
+
+    if (termHeight < 24 || termWidth < 50)
+    {
+        move(0, 0);
+        printw("Terminal too small! Resize and restart.");
+        refresh();
+        return;
+    }
+
+    int gridStartY = (termHeight / 2) - 10;
+    int gridStartX = (termWidth / 2) - 15;
+
+    grid.Draw(gridStartY, gridStartX);
+    currentBlock.Draw(gridStartY, gridStartX);
+
+    // ✅ Show Level Above Next Block
+    move(gridStartY - 2, gridStartX + 30);
+    printw("Level: %d", level);
+
+    move(gridStartY, gridStartX + 30);
+    printw("Score: %d", score);
+
+    move(gridStartY + 2, gridStartX + 30);
+    printw("Next:");
+
+    std::vector<Position> nextTiles = nextBlock.GetCellPositions();
+    for (Position item : nextTiles)
+    {
+        move(gridStartY + item.row + 4, gridStartX + (item.column * 2) + 32);
+        attron(COLOR_PAIR(nextBlock.id));
+        printw(" #");
+        attroff(COLOR_PAIR(nextBlock.id));
+    }
+
+    refresh();
+}
+
+void Game::HardDrop()
+{
+    while (!IsBlockOutside() && BlockFits())
+    {
+        currentBlock.Move(1, 0);
+    }
+    currentBlock.Move(-1, 0); // Undo last move to keep it inside bounds
+    LockBlock();              // Lock the block in place
+}
+
+void Game::HandleInput()
+{
+    int key = getch();
+    if (key != ERR) // If a key was pressed
+    {
+        if (gameOver && key != 0)
+        {
+            gameOver = false;
+            Reset();
+        }
+        switch (key)
+        {
+        case KEY_LEFT:
+        case 'a':
+            MoveBlockLeft();
+            break;
+        case KEY_RIGHT:
+        case 'd':
+            MoveBlockRight();
+            break;
+        case KEY_DOWN:
+        case 's':
+            MoveBlockDown();
+            // UpdateScore(0, 1);
+            break;
+        case KEY_UP:
+        case 'w':
+            RotateBlock();
+            break;
+        case ' ': // Spacebar for Hard Drop
+            HardDrop();
+            break;
+        case 27: // Escape key to quit
+            gameOver = true;
+            leaderboard->addScore(username, score);                // Save current user's score!
+            leaderboard->saveToFile("users.csv");                  // Persist immediately
+            leaderboard->saveLeaderboardToFile("leaderboard.csv"); // Persist leaderboard
+            endwin();                                              // Restore terminal settings
+            exit(0);                                               // Quit safely
+        }
+    }
+}
+
+void Game::MoveBlockLeft()
+{
+    if (!gameOver)
+    {
+        currentBlock.Move(0, -1);
+        if (IsBlockOutside() || BlockFits() == false)
+        {
+            currentBlock.Move(0, 1);
+        }
+    }
+}
+
+void Game::MoveBlockRight()
+{
+    if (!gameOver)
+    {
+        currentBlock.Move(0, 1);
+        if (IsBlockOutside() || BlockFits() == false)
+        {
+            currentBlock.Move(0, -1);
+        }
+    }
+}
+
+void Game::MoveBlockDown()
+{
+    if (!gameOver)
+    {
+        currentBlock.Move(1, 0);
+        if (IsBlockOutside() || BlockFits() == false)
+        {
+            currentBlock.Move(-1, 0);
+            LockBlock();
+        }
+    }
+}
+
+bool Game::IsBlockOutside()
+{
+    std::vector<Position> tiles = currentBlock.GetCellPositions();
+    for (Position item : tiles)
+    {
+        if (grid.IsCellOutside(item.row, item.column))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+void Game::RotateBlock()
+{
+    if (!gameOver)
+    {
+        currentBlock.Rotate();
+        if (IsBlockOutside() || BlockFits() == false)
+        {
+            currentBlock.UndoRotation();
+        }
+    }
+}
+
+void Game::LockBlock()
+{
+    std::vector<Position> tiles = currentBlock.GetCellPositions();
+    for (Position item : tiles)
+    {
+        grid.grid[item.row][item.column] = currentBlock.id;
+    }
+    currentBlock = nextBlock;
+
+    if (!BlockFits())
+    {
+        gameOver = true;
+
+        int termHeight, termWidth;
+        getmaxyx(stdscr, termHeight, termWidth);
+
+        clear();
+
+        // Retrieve user's personal best and global highest correctly:
+        User* currentUser = leaderboard->findUser(username);
+        int personalHighest = currentUser ? currentUser->highestScoreEver : 0;
+        int globalHighest = leaderboard->getHighestGlobalScore();
+
+        bool newPersonalBest = (score > personalHighest);
+        bool newHighestScore = (score > globalHighest);
+
+        // Display "GAME OVER!" centered
+        mvprintw(termHeight / 2, termWidth / 2 - 5, "GAME OVER!");
+
+        // Display "New Personal High Score!" if applicable
+        if (newPersonalBest) {
+            mvprintw(termHeight / 2 + 1, termWidth / 2 - 12, "New Personal High Score!");
+        }
+
+        // Display "Highest Score!" if applicable
+        if (newHighestScore) {
+            mvprintw(termHeight / 2 + 2, termWidth / 2 - 17, "Congratulations ! New Leaderboard Topper!");
+        }
+
+        refresh();
+        std::this_thread::sleep_for(std::chrono::seconds(3));
+        clear();
+
+        // Only AFTER displaying, update leaderboard and user
+        // leaderboard->addScore(username, score);
+
+        return;
+    }
+
+    nextBlock = GetRandomBlock();
+    int rowsCleared = grid.ClearFullRows();
+
+    if (rowsCleared > 0)
+    {
+        totalRowsCleared += rowsCleared;
+        UpdateScore(rowsCleared);
+
+        if (totalRowsCleared % 3 == 0)
+        {
+            level++;
+            dropSpeed -= chrono::milliseconds(50);
+            if (dropSpeed < chrono::milliseconds(100))
+            {
+                dropSpeed = chrono::milliseconds(100);
+            }
+        }
+    }
+}
+
+
+bool Game::BlockFits()
+{
+    std::vector<Position> tiles = currentBlock.GetCellPositions();
+    for (Position item : tiles)
+    {
+        if (grid.IsCellEmpty(item.row, item.column) == false)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+int Game::getScore()
+{
+    return score;
+}
+
+void Game::Reset()
+{
+    grid.Initialize();
+    blocks = GetAllBlocks();
+    currentBlock = GetRandomBlock();
+    nextBlock = GetRandomBlock();
+    score = 0;
+}
+
+void Game::UpdateScore(int linesCleared)
+{
+    if (linesCleared)
+    {
+        int scoreToAdd = 0;
+
+        int multipleOf3 = linesCleared / 3; // Number of full sets of 3 rows
+        int remainder = linesCleared % 3;   // Remaining rows after groups of 3
+
+        // ✅ Award 30 points per row for each full set of 3
+        scoreToAdd += multipleOf3 * (3 * 30);
+
+        // ✅ If remainder is 2, award 20 points per row for those 2 rows
+        if (remainder == 2)
+        {
+            scoreToAdd += 2 * 20;
+        }
+        // ✅ If remainder is 1, award 10 points for that single row
+        else if (remainder == 1)
+        {
+            scoreToAdd += 1 * 10;
+        }
+
+        score += scoreToAdd;
+    }
+}
+
+#include "grid.h"
+#include <ncurses.h>
+#include <iostream>
+
+Grid::Grid() {
+    numRows = 20;
+    numCols = 10;
+    Initialize();
+}
+
+void Grid::Initialize() {
+    for (int row = 0; row < numRows; row++) {
+        for (int column = 0; column < numCols; column++) {
+            grid[row][column] = 0;
+        }
+    }
+}
+
+void Grid::Print() {
+    for (int row = 0; row < numRows; row++) {
+        for (int column = 0; column < numCols; column++) {
+            std::cout << (grid[row][column] ? "#" : ".") << " ";
+        }
+        std::cout << std::endl;
+    }
+}
+
+void Grid::Draw(int startY, int startX) {
+    for (int row = 0; row < numRows; row++) {
+        move(startY + row, startX);  // Offset grid to center
+        for (int column = 0; column < numCols; column++) {
+            if (grid[row][column] == 0) {
+                // ✅ Set grid color to yellow
+                attron(COLOR_PAIR(7));  
+                printw(". ");
+                attroff(COLOR_PAIR(7));
+            } else {
+                attron(COLOR_PAIR(grid[row][column]));  // Set block color
+                printw("# ");
+                attroff(COLOR_PAIR(grid[row][column]));
+            }
+        }
+    }
+}
+
+bool Grid::IsCellOutside(int row, int column) {
+    return !(row >= 0 && row < numRows && column >= 0 && column < numCols);
+}
+
+bool Grid::IsCellEmpty(int row, int column) {
+    return grid[row][column] == 0;
+}
+
+int Grid::ClearFullRows() {
+    int completed = 0;
+    for (int row = numRows - 1; row >= 0; row--) {
+        if (IsRowFull(row)) {
+            ClearRow(row);
+            completed++;
+        } else if (completed > 0) {
+            MoveRowDown(row, completed);
+        }
+    }
+    return completed;
+}
+
+bool Grid::IsRowFull(int row) {
+    for (int column = 0; column < numCols; column++) {
+        if (grid[row][column] == 0) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void Grid::ClearRow(int row) {
+    for (int column = 0; column < numCols; column++) {
+        grid[row][column] = 0;
+    }
+}
+
+void Grid::MoveRowDown(int row, int numRows) {
+    for (int column = 0; column < numCols; column++) {
+        grid[row + numRows][column] = grid[row][column];
+        grid[row][column] = 0;
+    }
+}
+
+
+int Grid::getColoumns()
+{
+    return numCols;
+}
+
+int Grid::getRows()
+{
+    return numRows;
+}#include "leaderboard.h"
+#include <fstream>
+#include <sstream>
+#include <algorithm>
+#include <ncurses.h>
+
+void Leaderboard::displayUserScores(const std::string& username) {
+    clear();
+    bool userFound = false;
+
+    for (size_t i = 0; i < users.size(); i++) {
+        if (users[i].username == username) {
+            users[i].displayScores();
+            userFound = true;
+            break;
+        }
+    }
+
+    if (!userFound) {
+        mvprintw(0, 0, "User not found.");
+        refresh();
+    }
+}
+
+
+
+void Leaderboard::loadFromFile(const std::string& filename) {
+    std::ifstream file(filename);
+    if (!file.is_open()) return;
+
+    users.clear();
+    topScores.clear();
+
+    std::string line;
+    while (getline(file, line)) {
+        std::stringstream ss(line);
+        std::string item;
+        std::vector<std::string> tokens;
+
+        while (getline(ss, item, ',')) {
+            tokens.push_back(item);
+        }
+
+        if (tokens.size() < 2) continue;
+
+        User user(tokens[0]);
+        user.highestScoreEver = std::stoi(tokens[1]);
+
+        // Load all last 5 scores and update the leaderboard with EACH score
+        for (size_t i = 2; i < tokens.size(); ++i) {
+            int score = std::stoi(tokens[i]);
+            user.scores.push_back(score);
+
+            // Add each individual score into the global leaderboard
+            updateLeaderboard(user.username, score);
+        }
+
+        users.push_back(user);
+    }
+    file.close();
+}
+
+
+
+
+void Leaderboard::saveToFile(const std::string& filename) {
+    std::ofstream file(filename);
+    for (auto& user : users) {
+        file << user.username << "," << user.highestScoreEver;
+        for (int score : user.scores) {
+            file << "," << score;
+        }
+        file << "\n";
+    }
+    file.close();
+}
+
+void Leaderboard::saveLeaderboardToFile(const std::string& filename) {
+    std::ofstream file(filename);
+    for (auto& entry : topScores) {
+        file << entry[0] << "," << entry[1] << "\n";
+    }
+    file.close();
+}
+
+void Leaderboard::addScore(const std::string& username, int score) {
+    bool userFound = false;
+    for (size_t i = 0; i < users.size(); i++) {
+        if (users[i].username == username) {
+            users[i].addScore(score);
+            userFound = true;
+            break;
+        }
+    }
+
+    if (!userFound) {
+        User newUser(username);
+        newUser.addScore(score);
+        users.push_back(newUser);
+    }
+    updateLeaderboard(username, score);
+}
+
+
+void Leaderboard::updateLeaderboard(const std::string& username, int score) {
+    // Add the new score directly to the leaderboard
+    topScores.push_back({username, std::to_string(score)});
+
+    // Sort leaderboard strictly by descending scores (including 0)
+    std::sort(topScores.begin(), topScores.end(),
+        [](const std::vector<std::string>& a, const std::vector<std::string>& b) {
+            return std::stoi(a[1]) > std::stoi(b[1]);
+        });
+
+    // Keep only the global top 5 scores regardless of duplicates or zeros
+    if (topScores.size() > 5) {
+        topScores.resize(5);
+    }
+}
+
+
+
+void Leaderboard::displayLeaderboard() {
+    clear();
+    int termHeight, termWidth;
+    getmaxyx(stdscr, termHeight, termWidth);
+
+    int startRow = termHeight / 2 - (topScores.size() / 2);
+    mvprintw(startRow - 2, (termWidth / 2) - 6, "Top Scores:");
+
+    for (size_t i = 0; i < topScores.size(); ++i) {
+        std::string line = topScores[i][0] + ": " + topScores[i][1];
+        mvprintw(startRow + i, (termWidth / 2) - (line.length() / 2), "%s", line.c_str());
+    }
+    refresh();
+}
+
+
+User* Leaderboard::findUser(const std::string& username) {
+    for (size_t i = 0; i < users.size(); ++i) {
+        if (users[i].username == username) {
+            return &users[i];
+        }
+    }
+    return nullptr;
+}
+
+
+void Leaderboard::displayAllUsers() {
+    clear();
+    int termHeight, termWidth;
+    getmaxyx(stdscr, termHeight, termWidth);
+
+    mvprintw(termHeight / 2 - users.size() / 2 - 1, (termWidth / 2) - 7, "Existing Users:");
+
+    for (size_t i = 0; i < users.size(); ++i) {
+        mvprintw(termHeight / 2 - users.size() / 2 + i + 1,
+                 (termWidth / 2) - (users[i].username.length() / 2),
+                 "%s", users[i].username.c_str());
+    }
+    refresh();
+}
+
+
+void Leaderboard::createUser(const std::string& username) {
+    if (findUser(username) == nullptr) {
+        User newUser(username);
+        users.push_back(newUser);
+    }
+}
+
+bool Leaderboard::usersEmpty() const {
+    return users.empty();
+}
+
+
+
+
+void Leaderboard::displayLastFiveScoresAllUsers() {
+    clear();
+    int termHeight, termWidth;
+    getmaxyx(stdscr, termHeight, termWidth);
+
+    int line = termHeight / 2 - (users.size() * 3);
+    for (size_t i = 0; i < users.size(); ++i) {
+        mvprintw(line++, (termWidth / 2) - (users[i].username.length() / 2) - 6,
+                 "%s", users[i].username.c_str());
+        int scoresShown = 0;
+        std::string scoresLine;
+        for (int score : users[i].scores) {
+            scoresLine += std::to_string(score) + "  ";
+            scoresShown++;
+            if (scoresShown >= 5) break;
+        }
+        mvprintw(line++, (termWidth / 2) - (scoresLine.length() / 2), "%s", scoresLine.c_str());
+        line++;
+    }
+    refresh();
+}
+
+int Leaderboard::getHighestGlobalScore() const{
+    if (!topScores.empty()) {
+        return std::stoi(topScores.front()[1]);
+    }
+    return 0;
+}
+
+
+#include "user.h"
+#include <bits/stdc++.h>
+#include "leaderboard.h"
+#include "game.h"
+#include <ncurses.h>
+
+using namespace std::chrono;
+
+void InitializeColors()
+{
+    if (has_colors())
+    {
+        start_color();
+
+        // ✅ Initialize color pairs dynamically from `colours.h`
+        std::vector<Colours> allColours = GetCellColours();
+        for (size_t i = 0; i < allColours.size(); i++)
+        {
+            init_color(i + 1, allColours[i].r * 1000 / 255, allColours[i].g * 1000 / 255, allColours[i].b * 1000 / 255);
+            init_pair(i + 1, i + 1, 0); // Set color pair ID
+        }
+    }
+}
+
+// ✅ Function to check if an event should be triggered
+bool EventTriggered(milliseconds interval)
+{
+    static auto lastUpdateTime = steady_clock::now();
+    auto currentTime = steady_clock::now();
+    if (duration_cast<milliseconds>(currentTime - lastUpdateTime) >= interval)
+    {
+        lastUpdateTime = currentTime;
+        return true;
+    }
+    return false;
+}
+
+// ✅ Select difficulty with centered menu
+int SelectDifficulty()
+{
+    int choice = 0;
+    int termHeight, termWidth;
+    getmaxyx(stdscr, termHeight, termWidth); // Get terminal size
+
+    while (true)
+    {
+        clear();
+
+        int startRow = termHeight / 2 - 3; // Center vertically
+        int startCol = termWidth / 2 - 10; // Center horizontally (approx.)
+
+        move(startRow, startCol);
+        printw("=============================");
+        move(startRow + 1, startCol);
+        printw("      SELECT DIFFICULTY    ");
+        move(startRow + 2, startCol);
+        printw("=============================");
+        move(startRow + 4, startCol + 11);
+        printw("1. EASY");
+        move(startRow + 5, startCol + 11);
+        printw("2. MEDIUM");
+        move(startRow + 6, startCol + 11);
+        printw("3. HARD");
+        move(startRow + 8, startCol + 1);
+        printw("Press 1, 2, or 3 to select.");
+
+        refresh();
+        timeout(-1); // Block input until user selects
+        int ch = getch();
+        timeout(0); // Restore non-blocking input
+
+        if (ch == '1')
+            return 500; // Easy: Slowest speed (500ms)
+        if (ch == '2')
+            return 400; // Medium: Moderate speed (400ms)
+        if (ch == '3')
+            return 200; // Hard: Fastest speed (200ms)
+    }
+}
+
+void mainMenu(Leaderboard &lb)
+{
+    int termHeight, termWidth;
+    while (true)
+    {
+        clear();
+        getmaxyx(stdscr, termHeight, termWidth);
+
+        int startRow = termHeight / 2 - 5;
+        int startCol = termWidth / 2 - 20;
+
+        mvprintw(startRow, startCol, "===== MAIN MENU =====");
+        mvprintw(startRow + 2, startCol, "1. Play Game (Existing User)");
+        mvprintw(startRow + 3, startCol, "2. Display Existing Users");
+        mvprintw(startRow + 4, startCol, "3. Create New User");
+        mvprintw(startRow + 5, startCol, "4. Display Last 5 Scores of All Users");
+        mvprintw(startRow + 6, startCol, "5. Display Leaderboard");
+        mvprintw(startRow + 7, startCol, "6. Exit");
+        mvprintw(startRow + 9, startCol, "Select an option: ");
+        refresh();
+
+        int choice = getch();
+
+        switch (choice)
+        {
+        case '1':
+        {
+            if (lb.usersEmpty())
+            {
+                clear();
+                mvprintw(termHeight / 2, termWidth / 2 - 15, "No users exist. Please create a user first.");
+                mvprintw(termHeight / 2 + 1, termWidth / 2 - 15, "Press any key...");
+                getch();
+                break;
+            }
+            echo();
+            char name[50];
+            clear();
+            mvprintw(termHeight / 2, termWidth / 2 - 15, "Enter username: ");
+            getstr(name);
+            noecho();
+            User *user = lb.findUser(name);
+            if (user == nullptr)
+            {
+                mvprintw(termHeight / 2 + 2, termWidth / 2 - 15, "User '%s' does not exist. Press any key...", name);
+                getch();
+            }
+            else
+            {
+                bool playAgain = true;
+                while (playAgain)
+                {
+                    int speed = SelectDifficulty();
+                    Game game(speed, &lb, name);
+                    while (!game.gameOver)
+                    {
+                        game.HandleInput();
+                        if (EventTriggered(game.dropSpeed))
+                        {
+                            game.MoveBlockDown();
+                        }
+                        if (game.gameOver)
+                            break;
+                        clear();
+                        game.Draw();
+                        refresh();
+                        std::this_thread::sleep_for(milliseconds(50));
+                    }
+                    lb.addScore(name, game.getScore());
+
+                    nodelay(stdscr, FALSE);
+                    flushinp();
+
+                    clear();
+                    mvprintw(termHeight / 2, termWidth / 2 - 15, "Play again with same username? (y/n): ");
+                    // refresh();
+                    int again = getch();
+                    playAgain = (again == 'y' || again == 'Y');
+                }
+            }
+            break;
+        }
+
+        case '2':
+            clear();
+            lb.displayAllUsers();
+            mvprintw(termHeight - 2, termWidth / 2 - 15, "Press any key to return...");
+            refresh();
+            getch();
+            break;
+
+        case '3':
+        {
+            echo();
+            char newName[50];
+            clear();
+            mvprintw(termHeight / 2, termWidth / 2 - 15, "Enter new username: ");
+            getstr(newName);
+            noecho();
+            if (lb.findUser(newName) != nullptr)
+                mvprintw(termHeight / 2 + 2, termWidth / 2 - 15, "Username already exists!");
+            else
+            {
+                lb.createUser(newName);
+                mvprintw(termHeight / 2 + 2, termWidth / 2 - 15, "User created successfully!");
+            }
+            mvprintw(termHeight - 2 , termWidth / 2 - 15, "Press any key to return...");
+            getch();
+            break;
+        }
+
+        case '4':
+            clear();
+            lb.displayLastFiveScoresAllUsers();
+            mvprintw(termHeight - 2, termWidth / 2 - 15, "Press any key to return...");
+            refresh();
+            getch();
+            break;
+
+        case '5':
+            clear();
+            lb.displayLeaderboard();
+            mvprintw(termHeight - 2, termWidth / 2 - 15, "Press any key to return...");
+            refresh();
+            getch();
+            break;
+
+        case '6':
+            return;
+
+        default:
+            mvprintw(termHeight - 2, termWidth / 2 - 15, "Invalid option. Press any key to return...");
+            refresh();
+            getch();
+        }
+    }
+}
+
+
+int main()
+{   
+    srand(time(0));
+    initscr();
+    noecho();
+    cbreak();
+    keypad(stdscr, TRUE);
+    curs_set(0);
+
+    InitializeColors();
+
+    Leaderboard lb;
+    lb.loadFromFile("users.csv");
+
+    mainMenu(lb);
+
+    lb.saveToFile("users.csv");
+    lb.saveLeaderboardToFile("leaderboard.csv");
+
+    curs_set(1);
+    endwin();
+
+    return 0;
+}#include "position.h"
+
+Position::Position(int row, int column)
+{
+    this->row = row;
+    this->column = column;
+}#include "tetrominoes.h"
+
+LBlock::LBlock() {
+    id = 1;
+    cells = {
+        {{0,2}, {1,0}, {1,1}, {1,2}},
+        {{0,1}, {1,1}, {2,1}, {2,2}},
+        {{1,0}, {1,1}, {1,2}, {2,0}},
+        {{0,0}, {0,1}, {1,1}, {2,1}}
+    };
+    Move(0, 3);
+}
+
+JBlock::JBlock() {
+    id = 2;
+    cells = {
+        {{0,0}, {1,0}, {1,1}, {1,2}},
+        {{0,1}, {0,2}, {1,1}, {2,1}},
+        {{1,0}, {1,1}, {1,2}, {2,2}},
+        {{0,1}, {1,1}, {2,0}, {2,1}}
+    };
+    Move(0, 3);
+}
+
+IBlock::IBlock() {
+    id = 3;
+    cells = {
+        {{1,0}, {1,1}, {1,2}, {1,3}},
+        {{0,2}, {1,2}, {2,2}, {3,2}},
+        {{2,0}, {2,1}, {2,2}, {2,3}},
+        {{0,1}, {1,1}, {2,1}, {3,1}}
+    };
+    Move(-1, 3);
+}
+
+OBlock::OBlock() {
+    id = 4;
+    cells = {
+        {{0,0}, {0,1}, {1,0}, {1,1}}
+    };
+    Move(0, 4);
+}
+
+SBlock::SBlock() {
+    id = 5;
+    cells = {
+        {{0,1}, {0,2}, {1,0}, {1,1}},
+        {{0,1}, {1,1}, {1,2}, {2,2}},
+        {{1,1}, {1,2}, {2,0}, {2,1}},
+        {{0,0}, {1,0}, {1,1}, {2,1}}
+    };
+    Move(0, 3);
+}
+
+TBlock::TBlock() {
+    id = 6;
+    cells = {
+        {{0,1}, {1,0}, {1,1}, {1,2}},
+        {{0,1}, {1,1}, {1,2}, {2,1}},
+        {{1,0}, {1,1}, {1,2}, {2,1}},
+        {{0,1}, {1,0}, {1,1}, {2,1}}
+    };
+    Move(0, 3);
+}
+
+ZBlock::ZBlock() {
+    id = 7;
+    cells = {
+        {{0,0}, {0,1}, {1,1}, {1,2}},
+        {{0,2}, {1,1}, {1,2}, {2,1}},
+        {{1,0}, {1,1}, {2,1}, {2,2}},
+        {{0,1}, {1,0}, {1,1}, {2,0}}
+    };
+    Move(0, 3);
+}
+#include "user.h"
+#include <algorithm>
+#include <ncurses.h>
+
+User::User(const std::string& name) : username(name), highestScoreEver(0) {}
+
+void User::addScore(int score) {
+    scores.push_back(score);
+    if (scores.size() > 5) {
+        scores.erase(scores.begin());
+    }
+    highestScoreEver = std::max(highestScoreEver, score);
+}
+
+
+void User::displayScores() const {
+    clear();
+    int termHeight, termWidth;
+    getmaxyx(stdscr, termHeight, termWidth);
+    mvprintw(termHeight / 2 - 3, (termWidth / 2) - (username.length() / 2) - 8,
+             "Last 5 Scores for %s:", username.c_str());
+
+    for (size_t i = 0; i < scores.size(); ++i) {
+        mvprintw(termHeight / 2 - 1 + i, (termWidth / 2) - 1, "%d", scores[i]);
+    }
+    refresh();
+}
+
+#pragma once
+#include <vector>
+#include "position.h"
+#include "colours.h"
+
+class Block {
+public:
+    Block();
+    void Draw(int, int);
+    void Move(int rows, int columns);
+    std::vector<Position> GetCellPositions();
+    void Rotate();
+    void UndoRotation();
+    
+    int id;
+
+    // Vector-based replacement for map<int, vector<Position>>
+    std::vector<std::vector<Position>> cells;
+
+private:
+    int cellSize;
+    int rotationState;
+    std::vector<Colours> colours;
+    int rowOffset;
+    int columnOffset;
+};
+#pragma once
+#include <vector>
+#include <map>
+#include <iostream>
+#include <ncurses.h>
+
+struct Colours {
+    int r, g, b;
+    int ncursesId; // ID for ncurses color pair
+};
+
+// ✅ Declare colors with ID mapping for ncurses
+extern const Colours darkGrey;
+extern const Colours green;
+extern const Colours red;
+extern const Colours orange;
+extern const Colours yellow;
+extern const Colours purple;
+extern const Colours cyan;
+extern const Colours blue;
+extern const Colours lightBlue;
+extern const Colours darkBlue;
+
+// ✅ Function to get all colors
+std::vector<Colours> GetCellColours();
+#pragma once
+#include "grid.h"
+// #include "user.h"
+#include "tetrominoes.h"
+#include <chrono>
+#include "leaderboard.h"
+#include <bits/stdc++.h>
+using namespace std;
+
+class Game
+{
+public:
+    Game(int startSpeed, Leaderboard* lb, string name);
+    ~Game();
+    void Draw();
+    void HandleInput();
+    void MoveBlockDown();
+    bool gameOver;
+    int score;
+    int level; // ✅ Track the game level
+    int totalRowsCleared; // ✅ Track total cleared rows
+        int getScore();
+
+    chrono::milliseconds dropSpeed; // ✅ Fully qualify
+    // User currentUser;
+
+
+private:
+    void HardDrop();
+    void MoveBlockLeft();
+    void MoveBlockRight();
+    Block GetRandomBlock();
+    std::vector<Block> GetAllBlocks();
+    bool IsBlockOutside();
+    void RotateBlock();
+    void LockBlock();
+    bool BlockFits();
+    void Reset();
+    void UpdateScore(int linesCleared);
+    Grid grid;
+    Leaderboard* leaderboard;
+    std::vector<Block> blocks;
+    Block currentBlock;
+    Block nextBlock;
+    string username;
+ // ✅ Drop speed based on level
+};
+#pragma once
+#include <vector>
+#include "colours.h"
+// #include <raylib.h>
+
+class Grid
+{
+public:
+    Grid();
+    void Initialize();
+    void Print();
+    void Draw(int, int);
+    bool IsCellOutside(int row, int column);
+    bool IsCellEmpty(int row, int column);
+    int ClearFullRows();
+    int grid[20][10];
+    int getRows();
+    int getColoumns();
+
+private:
+    bool IsRowFull(int row);
+    void ClearRow(int row);
+    void MoveRowDown(int row, int numRows);
+    int numRows;
+    int numCols;
+    int cellSize;
+    std::vector<Colours> colors;
+};#ifndef LEADERBOARD_H
+#define LEADERBOARD_H
+
+#include <vector>
+#include <string>
+#include "user.h"
+
+class Leaderboard {
+private:
+    std::vector<User> users;
+    std::vector<std::vector<std::string>> topScores;  // [username, score]
+
+public:
+    void displayUserScores(const std::string& username);
+    void loadFromFile(const std::string& filename);
+    void saveToFile(const std::string& filename);
+    void saveLeaderboardToFile(const std::string& filename);
+    void addScore(const std::string& username, int score);
+    void updateLeaderboard(const std::string& username, int score);
+    void displayLeaderboard();
+    bool usersEmpty() const;
+    User* findUser(const std::string& username);
+    int getHighestGlobalScore() const;
+    void displayAllUsers();
+    void createUser(const std::string& username);
+    void displayLastFiveScoresAllUsers();
+};
+
+#endif // LEADERBOARD_H
+#pragma once
+
+class Position
+{
+public:
+    Position(int row, int column);
+    int row;
+    int column;
+};#pragma once
+#include <vector>
+#include "block.h"
+
+class LBlock : public Block {
+public:
+    LBlock();
+};
+
+class JBlock : public Block {
+public:
+    JBlock();
+};
+
+class IBlock : public Block {
+public:
+    IBlock();
+};
+
+class OBlock : public Block {
+public:
+    OBlock();
+};
+
+class SBlock : public Block {
+public:
+    SBlock();
+};
+
+class TBlock : public Block {
+public:
+    TBlock();
+};
+
+class ZBlock : public Block {
+public:
+    ZBlock();
+};
+
+#ifndef USER_H
+#define USER_H
+
+#include <vector>
+#include <string>
+
+class User {
+public:
+    std::string username;
+    std::vector<int> scores;
+    int highestScoreEver;
+
+    User(const std::string& name);
+
+    void addScore(int score);
+    void displayScores() const;
+};
+
+#endif // USER_H
