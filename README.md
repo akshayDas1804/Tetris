@@ -75,7 +75,7 @@ g++ -std=c++17 src/*.cpp -Iinclude -lncurses -o tetris
 ./tetris
 ```
 
-### 🫠 Windows (PowerShell)
+### 🫠 Windows 
 
 ```powershell
 g++ (Get-ChildItem src\*.cpp) -o tetris.exe -Iinclude -IPDCurses -LPDCurses\wincon -l:pdcurses.a
