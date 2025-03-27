@@ -149,14 +149,13 @@ g++ -std=c++17 src/*.cpp -Iinclude -lncurses -o tetris
 
 ## 🧮 Scoring System
 
-The scoring system rewards players based on the number of rows cleared:
+The scoring system rewards players based on the number of rows cleared. For each set of:
 
 | Lines Cleared at Once | Points Awarded |
 |------------------------|----------------|
 | 1 row                  | 10 points      |
 | 2 rows                 | 40 points      |
 | 3 rows                 | 90 points      |
-| 4+ rows                | 30 × number of rows |
 
 **Bonus:**
 - Every 3 rows cleared = +1 level (faster speed)
