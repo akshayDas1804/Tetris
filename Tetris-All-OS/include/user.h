@@ -1,16 +1,15 @@
 #ifndef USER_H
 #define USER_H
 
-#include <vector>
-#include <string>
+#include "headerfiles.h"
 
 class User {
 public:
-    std::string username;
-    std::vector<int> scores;
+    string username;
+    vector<int> scores;
     int highestScoreEver;
 
-    User(const std::string& name);
+    User(const string& name);
 
     void addScore(int score);
     void displayScores() const;

@@ -1,5 +1,5 @@
 #pragma once
-#include <vector>
+#include "headerfiles.h"
 #include "position.h"
 #include "colours.h"
 
@@ -13,9 +13,7 @@ public:
     void UndoRotation();
     
     int id;
-
-    // Vector-based replacement for map<int, vector<Position>>
-    std::vector<std::vector<Position>> cells;
+    vector<vector<Position>> cells;
 
 private:
     int cellSize;

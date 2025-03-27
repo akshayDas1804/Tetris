@@ -1,28 +1,27 @@
 #ifndef LEADERBOARD_H
 #define LEADERBOARD_H
 
-#include <vector>
-#include <string>
+#include "headerfiles.h"
 #include "user.h"
 
 class Leaderboard {
 private:
-    std::vector<User> users;
-    std::vector<std::vector<std::string>> topScores;  // [username, score]
+    vector<User> users;
+    vector<vector<string>> topScores;  // [username, score]
 
 public:
-    void displayUserScores(const std::string& username);
-    void loadFromFile(const std::string& filename);
-    void saveToFile(const std::string& filename);
-    void saveLeaderboardToFile(const std::string& filename);
-    void addScore(const std::string& username, int score);
-    void updateLeaderboard(const std::string& username, int score);
+    void displayUserScores(const string& username);
+    void loadFromFile(const string& filename);
+    void saveToFile(const string& filename);
+    void saveLeaderboardToFile(const string& filename);
+    void addScore(const string& username, int score);
+    void updateLeaderboard(const string& username, int score);
     void displayLeaderboard();
     bool usersEmpty() const;
-    User* findUser(const std::string& username);
+    User* findUser(const string& username);
     int getHighestGlobalScore() const;
     void displayAllUsers();
-    void createUser(const std::string& username);
+    void createUser(const string& username);
     void displayLastFiveScoresAllUsers();
 };
 

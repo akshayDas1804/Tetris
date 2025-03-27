@@ -1,11 +1,8 @@
 #pragma once
+#include "headerfiles.h"
 #include "grid.h"
-// #include "user.h"
 #include "tetrominoes.h"
-#include <chrono>
 #include "leaderboard.h"
-#include <bits/stdc++.h>
-using namespace std;
 
 class Game
 {
@@ -17,13 +14,11 @@ public:
     void MoveBlockDown();
     bool gameOver;
     int score;
-    int level; // ✅ Track the game level
-    int totalRowsCleared; // ✅ Track total cleared rows
-        int getScore();
+    int level; // Track the game level
+    int totalRowsCleared; // Track total cleared rows
+    int getScore();
 
-    chrono::milliseconds dropSpeed; // ✅ Fully qualify
-    // User currentUser;
-
+    chrono::milliseconds dropSpeed; // Fully qualify
 
 private:
     void HardDrop();
@@ -43,5 +38,4 @@ private:
     Block currentBlock;
     Block nextBlock;
     string username;
- // ✅ Drop speed based on level
 };
