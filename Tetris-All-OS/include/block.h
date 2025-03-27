@@ -8,7 +8,7 @@ public:
     Block();
     void Draw(int, int);
     void Move(int rows, int columns);
-    std::vector<Position> GetCellPositions();
+    vector<Position> GetCellPositions();
     void Rotate();
     void UndoRotation();
     
@@ -18,7 +18,7 @@ public:
 private:
     int cellSize;
     int rotationState;
-    std::vector<Colours> colours;
+    vector<Colours> colours;
     int rowOffset;
     int columnOffset;
 };
