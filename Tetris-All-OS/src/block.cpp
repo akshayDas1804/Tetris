@@ -1,8 +1,6 @@
 #include "block.h"
 #include "colours.h"
-#include <vector>
-#include <iostream>
-#include <ncurses.h>
+#include "headerfiles.h"
 
 Block::Block()
 {
@@ -13,7 +11,7 @@ Block::Block()
 }
 
 void Block::Draw(int startY, int startX) {
-    std::vector<Position> tiles = GetCellPositions();
+    vector<Position> tiles = GetCellPositions();
     
     for (Position item : tiles) {
         if (item.row >= 0 && item.row < 20 && item.column >= 0 && item.column < 10) {
@@ -31,10 +29,10 @@ void Block::Move(int rows, int columns)
     columnOffset += columns;
 }
 
-std::vector<Position> Block::GetCellPositions()
+vector<Position> Block::GetCellPositions()
 {
-    std::vector<Position> tiles = cells[rotationState];
-    std::vector<Position> movedTiles;
+    vector<Position> tiles = cells[rotationState];
+    vector<Position> movedTiles;
     for (Position item : tiles) {
         movedTiles.push_back({item.row + rowOffset, item.column + columnOffset});
     }

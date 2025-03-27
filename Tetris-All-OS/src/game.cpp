@@ -1,12 +1,6 @@
 #include "game.h"
-#include <random>
-#include <iostream>
-#include <unistd.h>  // For usleep()
-#include <ncurses.h> // For non-blocking input with ncurses
-#include <algorithm> // Include for shuffle
-#include <thread>    // For std::this_thread::sleep_for
-#include <chrono>    // For std::chrono::seconds
-#include <random>
+#include "headerfiles.h"
+
 
 Game::Game(int startSpeed, Leaderboard *lb, string name)
 {
@@ -17,9 +11,9 @@ Game::Game(int startSpeed, Leaderboard *lb, string name)
     nextBlock = GetRandomBlock();
     gameOver = false;
     score = 0;
-    level = 1;                                    // ✅ Start at level 1
-    totalRowsCleared = 0;                         // ✅ Initialize cleared rows counter
-    dropSpeed = chrono::milliseconds(startSpeed); // ✅ Initial drop speed
+    level = 1;                                    // Start at level 1
+    totalRowsCleared = 0;                         // Initialize cleared rows counter
+    dropSpeed = chrono::milliseconds(startSpeed); // Initial drop speed
     username = name;
 }
 
@@ -40,13 +34,13 @@ Block Game::GetRandomBlock()
     return block;
 }
 
-std::vector<Block> Game::GetAllBlocks()
+vector<Block> Game::GetAllBlocks()
 {
-    std::vector<Block> blocks = {IBlock(), JBlock(), LBlock(), OBlock(), SBlock(), TBlock(), ZBlock()};
+    vector<Block> blocks = {IBlock(), JBlock(), LBlock(), OBlock(), SBlock(), TBlock(), ZBlock()};
 
-    std::random_device rd;
-    std::mt19937 g(rd());                          // ✅ Use a better random number generator
-    std::shuffle(blocks.begin(), blocks.end(), g); // ✅ Correct shuffle usage
+    random_device rd;
+    mt19937 g(rd());                          // better random number generator
+    shuffle(blocks.begin(), blocks.end(), g); // Correct shuffle usage
 
     return blocks;
 }
@@ -82,7 +76,7 @@ void Game::Draw()
     move(gridStartY + 2, gridStartX + 30);
     printw("Next:");
 
-    std::vector<Position> nextTiles = nextBlock.GetCellPositions();
+    vector<Position> nextTiles = nextBlock.GetCellPositions();
     for (Position item : nextTiles)
     {
         move(gridStartY + item.row + 4, gridStartX + (item.column * 2) + 32);
@@ -186,7 +180,7 @@ void Game::MoveBlockDown()
 
 bool Game::IsBlockOutside()
 {
-    std::vector<Position> tiles = currentBlock.GetCellPositions();
+    vector<Position> tiles = currentBlock.GetCellPositions();
     for (Position item : tiles)
     {
         if (grid.IsCellOutside(item.row, item.column))
@@ -211,7 +205,7 @@ void Game::RotateBlock()
 
 void Game::LockBlock()
 {
-    std::vector<Position> tiles = currentBlock.GetCellPositions();
+    vector<Position> tiles = currentBlock.GetCellPositions();
     for (Position item : tiles)
     {
         grid.grid[item.row][item.column] = currentBlock.id;
@@ -249,7 +243,8 @@ void Game::LockBlock()
         }
 
         refresh();
-        std::this_thread::sleep_for(std::chrono::seconds(3));
+        // std::this_thread::sleep_for(std::chrono::seconds(3));
+        this_thread::sleep_for(chrono::seconds(3));
         clear();
 
         // Only AFTER displaying, update leaderboard and user
@@ -281,7 +276,7 @@ void Game::LockBlock()
 
 bool Game::BlockFits()
 {
-    std::vector<Position> tiles = currentBlock.GetCellPositions();
+    vector<Position> tiles = currentBlock.GetCellPositions();
     for (Position item : tiles)
     {
         if (grid.IsCellEmpty(item.row, item.column) == false)

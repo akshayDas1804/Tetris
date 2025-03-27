@@ -1,10 +1,10 @@
 #include "user.h"
-#include <bits/stdc++.h>
 #include "leaderboard.h"
 #include "game.h"
-#include <ncurses.h>
+#include "headerfiles.h"
 
-using namespace std::chrono;
+
+using namespace chrono;
 
 void InitializeColors()
 {
@@ -12,8 +12,8 @@ void InitializeColors()
     {
         start_color();
 
-        // ✅ Initialize color pairs dynamically from `colours.h`
-        std::vector<Colours> allColours = GetCellColours();
+        // Initialize color pairs dynamically from `colours.h`
+        vector<Colours> allColours = GetCellColours();
         for (size_t i = 0; i < allColours.size(); i++)
         {
             init_color(i + 1, allColours[i].r * 1000 / 255, allColours[i].g * 1000 / 255, allColours[i].b * 1000 / 255);
@@ -22,7 +22,7 @@ void InitializeColors()
     }
 }
 
-// ✅ Function to check if an event should be triggered
+// Function to check if an event should be triggered
 bool EventTriggered(milliseconds interval)
 {
     static auto lastUpdateTime = steady_clock::now();
@@ -35,13 +35,14 @@ bool EventTriggered(milliseconds interval)
     return false;
 }
 
-// ✅ Select difficulty with centered menu
+// Select difficulty with centered menu
 int SelectDifficulty()
 {
     int choice = 0;
     int termHeight, termWidth;
     getmaxyx(stdscr, termHeight, termWidth); // Get terminal size
 
+    InitializeColors();
     while (true)
     {
         clear();
@@ -49,6 +50,7 @@ int SelectDifficulty()
         int startRow = termHeight / 2 - 3; // Center vertically
         int startCol = termWidth / 2 - 10; // Center horizontally (approx.)
 
+        attron(COLOR_PAIR(7));  
         move(startRow, startCol);
         printw("=============================");
         move(startRow + 1, startCol);
@@ -63,6 +65,8 @@ int SelectDifficulty()
         printw("3. HARD");
         move(startRow + 8, startCol + 1);
         printw("Press 1, 2, or 3 to select.");
+        attroff(COLOR_PAIR(7));  
+
 
         refresh();
         timeout(-1); // Block input until user selects
@@ -84,11 +88,12 @@ void mainMenu(Leaderboard &lb)
     while (true)
     {
         clear();
+        // InitializeColors();
         getmaxyx(stdscr, termHeight, termWidth);
 
         int startRow = termHeight / 2 - 5;
         int startCol = termWidth / 2 - 20;
-
+        attron(COLOR_PAIR(7));  
         mvprintw(startRow, startCol, "===== MAIN MENU =====");
         mvprintw(startRow + 2, startCol, "1. Play Game (Existing User)");
         mvprintw(startRow + 3, startCol, "2. Display Existing Users");
@@ -97,6 +102,7 @@ void mainMenu(Leaderboard &lb)
         mvprintw(startRow + 6, startCol, "5. Display Leaderboard");
         mvprintw(startRow + 7, startCol, "6. Exit");
         mvprintw(startRow + 9, startCol, "Select an option: ");
+        attroff(COLOR_PAIR(7));  
         refresh();
 
         int choice = getch();
@@ -108,6 +114,7 @@ void mainMenu(Leaderboard &lb)
             if (lb.usersEmpty())
             {
                 clear();
+                // InitializeColors();
                 mvprintw(termHeight / 2, termWidth / 2 - 15, "No users exist. Please create a user first.");
                 mvprintw(termHeight / 2 + 1, termWidth / 2 - 15, "Press any key...");
                 getch();
@@ -144,7 +151,7 @@ void mainMenu(Leaderboard &lb)
                         clear();
                         game.Draw();
                         refresh();
-                        std::this_thread::sleep_for(milliseconds(50));
+                        this_thread::sleep_for(milliseconds(50));
                     }
                     lb.addScore(name, game.getScore());
 
@@ -153,6 +160,7 @@ void mainMenu(Leaderboard &lb)
 
                     clear();
                     mvprintw(termHeight / 2, termWidth / 2 - 15, "Play again with same username? (y/n): ");
+                    // InitializeColors();
                     // refresh();
                     int again = getch();
                     playAgain = (again == 'y' || again == 'Y');

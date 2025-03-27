@@ -1,10 +1,8 @@
 #include "leaderboard.h"
-#include <fstream>
-#include <sstream>
-#include <algorithm>
-#include <ncurses.h>
+#include "headerfiles.h"
 
-void Leaderboard::displayUserScores(const std::string& username) {
+
+void Leaderboard::displayUserScores(const string& username) {
     clear();
     bool userFound = false;
 
@@ -24,18 +22,18 @@ void Leaderboard::displayUserScores(const std::string& username) {
 
 
 
-void Leaderboard::loadFromFile(const std::string& filename) {
-    std::ifstream file(filename);
+void Leaderboard::loadFromFile(const string& filename) {
+    ifstream file(filename);
     if (!file.is_open()) return;
 
     users.clear();
     topScores.clear();
 
-    std::string line;
+    string line;
     while (getline(file, line)) {
-        std::stringstream ss(line);
-        std::string item;
-        std::vector<std::string> tokens;
+        stringstream ss(line);
+        string item;
+        vector<string> tokens;
 
         while (getline(ss, item, ',')) {
             tokens.push_back(item);
@@ -44,11 +42,11 @@ void Leaderboard::loadFromFile(const std::string& filename) {
         if (tokens.size() < 2) continue;
 
         User user(tokens[0]);
-        user.highestScoreEver = std::stoi(tokens[1]);
+        user.highestScoreEver = stoi(tokens[1]);
 
         // Load all last 5 scores and update the leaderboard with EACH score
         for (size_t i = 2; i < tokens.size(); ++i) {
-            int score = std::stoi(tokens[i]);
+            int score = stoi(tokens[i]);
             user.scores.push_back(score);
 
             // Add each individual score into the global leaderboard
@@ -63,8 +61,8 @@ void Leaderboard::loadFromFile(const std::string& filename) {
 
 
 
-void Leaderboard::saveToFile(const std::string& filename) {
-    std::ofstream file(filename);
+void Leaderboard::saveToFile(const string& filename) {
+    ofstream file(filename);
     for (auto& user : users) {
         file << user.username << "," << user.highestScoreEver;
         for (int score : user.scores) {
@@ -75,15 +73,15 @@ void Leaderboard::saveToFile(const std::string& filename) {
     file.close();
 }
 
-void Leaderboard::saveLeaderboardToFile(const std::string& filename) {
-    std::ofstream file(filename);
+void Leaderboard::saveLeaderboardToFile(const string& filename) {
+    ofstream file(filename);
     for (auto& entry : topScores) {
         file << entry[0] << "," << entry[1] << "\n";
     }
     file.close();
 }
 
-void Leaderboard::addScore(const std::string& username, int score) {
+void Leaderboard::addScore(const string& username, int score) {
     bool userFound = false;
     for (size_t i = 0; i < users.size(); i++) {
         if (users[i].username == username) {
@@ -102,14 +100,14 @@ void Leaderboard::addScore(const std::string& username, int score) {
 }
 
 
-void Leaderboard::updateLeaderboard(const std::string& username, int score) {
+void Leaderboard::updateLeaderboard(const string& username, int score) {
     // Add the new score directly to the leaderboard
-    topScores.push_back({username, std::to_string(score)});
+    topScores.push_back({username, to_string(score)});
 
     // Sort leaderboard strictly by descending scores (including 0)
-    std::sort(topScores.begin(), topScores.end(),
-        [](const std::vector<std::string>& a, const std::vector<std::string>& b) {
-            return std::stoi(a[1]) > std::stoi(b[1]);
+    sort(topScores.begin(), topScores.end(),
+        [](const vector<string>& a, const vector<string>& b) {
+            return stoi(a[1]) > stoi(b[1]);
         });
 
     // Keep only the global top 5 scores regardless of duplicates or zeros
@@ -129,14 +127,14 @@ void Leaderboard::displayLeaderboard() {
     mvprintw(startRow - 2, (termWidth / 2) - 6, "Top Scores:");
 
     for (size_t i = 0; i < topScores.size(); ++i) {
-        std::string line = topScores[i][0] + ": " + topScores[i][1];
+        string line = topScores[i][0] + ": " + topScores[i][1];
         mvprintw(startRow + i, (termWidth / 2) - (line.length() / 2), "%s", line.c_str());
     }
     refresh();
 }
 
 
-User* Leaderboard::findUser(const std::string& username) {
+User* Leaderboard::findUser(const string& username) {
     for (size_t i = 0; i < users.size(); ++i) {
         if (users[i].username == username) {
             return &users[i];
@@ -162,7 +160,7 @@ void Leaderboard::displayAllUsers() {
 }
 
 
-void Leaderboard::createUser(const std::string& username) {
+void Leaderboard::createUser(const string& username) {
     if (findUser(username) == nullptr) {
         User newUser(username);
         users.push_back(newUser);
@@ -186,9 +184,9 @@ void Leaderboard::displayLastFiveScoresAllUsers() {
         mvprintw(line++, (termWidth / 2) - (users[i].username.length() / 2) - 6,
                  "%s", users[i].username.c_str());
         int scoresShown = 0;
-        std::string scoresLine;
+        string scoresLine;
         for (int score : users[i].scores) {
-            scoresLine += std::to_string(score) + "  ";
+            scoresLine += to_string(score) + "  ";
             scoresShown++;
             if (scoresShown >= 5) break;
         }
@@ -200,7 +198,7 @@ void Leaderboard::displayLastFiveScoresAllUsers() {
 
 int Leaderboard::getHighestGlobalScore() const{
     if (!topScores.empty()) {
-        return std::stoi(topScores.front()[1]);
+        return stoi(topScores.front()[1]);
     }
     return 0;
 }

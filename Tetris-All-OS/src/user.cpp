@@ -1,15 +1,15 @@
 #include "user.h"
-#include <algorithm>
-#include <ncurses.h>
+#include "headerfiles.h"
 
-User::User(const std::string& name) : username(name), highestScoreEver(0) {}
+
+User::User(const string& name) : username(name), highestScoreEver(0) {}
 
 void User::addScore(int score) {
     scores.push_back(score);
     if (scores.size() > 5) {
         scores.erase(scores.begin());
     }
-    highestScoreEver = std::max(highestScoreEver, score);
+    highestScoreEver = max(highestScoreEver, score);
 }
 
 

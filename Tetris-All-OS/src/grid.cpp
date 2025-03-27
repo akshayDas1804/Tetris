@@ -1,6 +1,5 @@
 #include "grid.h"
-#include <ncurses.h>
-#include <iostream>
+#include "headerfiles.h"
 
 Grid::Grid() {
     numRows = 20;
@@ -19,9 +18,9 @@ void Grid::Initialize() {
 void Grid::Print() {
     for (int row = 0; row < numRows; row++) {
         for (int column = 0; column < numCols; column++) {
-            std::cout << (grid[row][column] ? "#" : ".") << " ";
+            cout << (grid[row][column] ? "#" : ".") << " ";
         }
-        std::cout << std::endl;
+        cout << endl;
     }
 }
 
