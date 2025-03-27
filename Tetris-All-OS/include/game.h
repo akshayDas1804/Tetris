@@ -17,7 +17,7 @@ public:
     int level; // Track the game level
     int totalRowsCleared; // Track total cleared rows
     int getScore();
-
+    int cumulativeLinesCleared;
     chrono::milliseconds dropSpeed; // Fully qualify
 
 private:
