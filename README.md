@@ -81,7 +81,7 @@ g++ -std=c++17 src/*.cpp -Iinclude -lncurses -o tetris
 
 ---
 
-## OOPs concepts
+## 🧱 OOPs concepts
 
 ### 1. Encapsulation
 Encapsulation is used to bundle the data (attributes) and methods that operate on the data into a single unit or class. For example, the `Block` class encapsulates properties like `id`, `cells`, `cellSize`, and methods like `Move()`, `Rotate()`, `Draw()`, etc., which manipulate these properties.
