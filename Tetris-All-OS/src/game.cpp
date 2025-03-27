@@ -14,6 +14,7 @@ Game::Game(int startSpeed, Leaderboard *lb, string name)
     level = 1;                                    // Start at level 1
     totalRowsCleared = 0;                         // Initialize cleared rows counter
     dropSpeed = chrono::milliseconds(startSpeed); // Initial drop speed
+    cumulativeLinesCleared = 0;
     username = name;
 }
 
@@ -243,34 +244,28 @@ void Game::LockBlock()
         }
 
         refresh();
-        // std::this_thread::sleep_for(std::chrono::seconds(3));
         this_thread::sleep_for(chrono::seconds(3));
         clear();
-
-        // Only AFTER displaying, update leaderboard and user
-        // leaderboard->addScore(username, score);
-
         return;
     }
 
     nextBlock = GetRandomBlock();
     int rowsCleared = grid.ClearFullRows();
 
-    if (rowsCleared > 0)
-    {
-        totalRowsCleared += rowsCleared;
-        UpdateScore(rowsCleared);
+   if (rowsCleared > 0) {
+            cumulativeLinesCleared += rowsCleared;
+            while (cumulativeLinesCleared >= 3) {
+                level++;
+                cumulativeLinesCleared -= 3; // Decrement the cumulative count by 3 on each level up
 
-        if (totalRowsCleared % 3 == 0)
-        {
-            level++;
-            dropSpeed -= chrono::milliseconds(50);
-            if (dropSpeed < chrono::milliseconds(100))
-            {
-                dropSpeed = chrono::milliseconds(100);
+                // Decrease drop speed for increased difficulty with each level
+                dropSpeed -= chrono::milliseconds(50);
+                if (dropSpeed < chrono::milliseconds(100)) {
+                    dropSpeed = chrono::milliseconds(100); // Cap minimum speed
+                }
             }
+            UpdateScore(rowsCleared);
         }
-    }
 }
 
 
@@ -310,15 +305,15 @@ void Game::UpdateScore(int linesCleared)
         int multipleOf3 = linesCleared / 3; // Number of full sets of 3 rows
         int remainder = linesCleared % 3;   // Remaining rows after groups of 3
 
-        // ✅ Award 30 points per row for each full set of 3
+        // Award 30 points per row for each full set of 3
         scoreToAdd += multipleOf3 * (3 * 30);
 
-        // ✅ If remainder is 2, award 20 points per row for those 2 rows
+        // If remainder is 2, award 20 points per row for those 2 rows
         if (remainder == 2)
         {
             scoreToAdd += 2 * 20;
         }
-        // ✅ If remainder is 1, award 10 points for that single row
+        // If remainder is 1, award 10 points for that single row
         else if (remainder == 1)
         {
             scoreToAdd += 1 * 10;
