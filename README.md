@@ -81,6 +81,23 @@ g++ -std=c++17 src/*.cpp -Iinclude -lncurses -o tetris
 
 ---
 
+## OOPs concepts
+
+### 1. Encapsulation
+Encapsulation is used to bundle the data (attributes) and methods that operate on the data into a single unit or class. For example, the `Block` class encapsulates properties like `id`, `cells`, `cellSize`, and methods like `Move()`, `Rotate()`, `Draw()`, etc., which manipulate these properties.
+
+### 2. Inheritance
+Several classes demonstrate inheritance, where they derive from a base class to enhance or modify its functionality. For instance, `LBlock`, `JBlock`, `IBlock`, and other block types inherit from the `Block` class, extending its functionality with specific configurations and behaviors.
+
+### 3. Polymorphism
+This is exhibited through method overriding, where derived classes override or extend base class methods. While the code snippet doesn't explicitly show polymorphic behavior via virtual functions, the structure suggests that methods like `Draw()` could be overridden in derived classes to account for different block behaviors or appearances.
+
+### 4. Abstraction
+Abstraction is shown by providing simple interfaces to complex underlying implementations. For example, the `Game` class abstracts the details of game initialization, user input handling, and game state management, providing a high-level interface through methods like `HandleInput()` and `Draw()`.
+
+
+---
+
 ## 📊 Data Structures Used
 
 | Component     | Structure                            | Purpose                                                       |
@@ -93,7 +110,7 @@ g++ -std=c++17 src/*.cpp -Iinclude -lncurses -o tetris
 | `Colours`     | `vector<Colours>`                     | Holds RGB definitions and terminal color IDs for block colors |
 
 
-### 📘 Classes and Their Responsibilities
+### 📘 Classes and Their Functions
 
 | Class / Struct | Description |
 |----------------|-------------|
