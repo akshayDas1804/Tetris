@@ -104,6 +104,7 @@ g++ -std=c++17 src/*.cpp -Iinclude -lncurses -o tetris
 ## ✨ Features
 
 - Multiple users and profiles
+- Cross Platform compatibility 
 - Personal best and last 5 scores tracked
 - Global leaderboard (top 5)
 - Easy, Medium, Hard difficulty levels
