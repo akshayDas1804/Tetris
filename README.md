@@ -56,7 +56,7 @@ cd PDCurses/wincon
 mingw32-make
 ```
 
-<h6>The commands may slightly differ so please check your system's documentation for help.</h6>
+<h4>The commands may slightly differ so please check your system's documentation for help.</h4>
 ---
 
 ## 🚀 How to Compile and Run
