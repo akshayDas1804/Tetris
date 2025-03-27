@@ -171,7 +171,7 @@ The scoring system rewards players based on the number of rows cleared:
 | Operation                      | Time Complexity | Space Complexity |
 |--------------------------------|------------------|-------------------|
 | Block Movement/Rotation        | O(1)             | O(1)              |
-| Grid Drawing and Updates       | O(n × m) = O(200)| O(1)              |
+| Grid Drawing and Updates       | O(n × m)         | O(1)              |
 | Row Clearing (Grid)            | O(n)             | O(1)              |
 | Leaderboard Insertion & Sort   | O(n log n)       | O(n)              |
 | User Score Insertion           | O(1)             | O(1)              |
