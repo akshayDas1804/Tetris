@@ -4,6 +4,24 @@ This is a console-based implementation of the classic **Tetris** game, developed
 
 ---
 
+## Table of Contents
+- [📂 Project Structure](#-project-structure)
+- [📦 Dependencies](#-dependencies)
+- [🚀 How to Compile and Run](#-how-to-compile-and-run)
+- [🎮 Controls](#-controls)
+- [✨ Features](#-features)
+- [🧱 OOPs concepts](#-oops-concepts)
+- [📊 Data Structures Used](#-data-structures-used)
+- [📘 Classes and Their Functions](#-classes-and-their-functions)
+- [🔍 Class Details](#-class-details)
+- [🧮 Scoring System](#-scoring-system)
+- [⏱️ Complexity Overview](#️-complexity-overview)
+- [👨‍💻 Authors](#-authors)
+- [📄 License](#-license)
+
+---
+
+
 ## 📂 Project Structure
 
 ```
@@ -109,8 +127,9 @@ Abstraction is shown by providing simple interfaces to complex underlying implem
 | `User`        | `vector<int>`                         | Tracks last 5 scores of a user                                |
 | `Colours`     | `vector<Colours>`                     | Holds RGB definitions and terminal color IDs for block colors |
 
+---
 
-### 📘 Classes and Their Functions
+## 📘 Classes and Their Functions
 
 | Class / Struct | Description |
 |----------------|-------------|
@@ -124,7 +143,7 @@ Abstraction is shown by providing simple interfaces to complex underlying implem
 
 ---
 
-### 🔍 Class Details
+## 🔍 Class Details
 
 #### `Block`
 - **id** – Block type ID (used for color).
