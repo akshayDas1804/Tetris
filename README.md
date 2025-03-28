@@ -31,6 +31,7 @@ Tetris/
 ├── leaderboard.csv        # Top scores (global)
 ├── users.csv              # All user score history
 ├── PDCurses/              # (Optional) Windows-specific curses library
+├── Demo Video
 └── README.md
 ```
 
