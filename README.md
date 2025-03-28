@@ -26,13 +26,15 @@ This is a console-based implementation of the classic **Tetris** game, developed
 
 ```
 Tetris/
-├── include/               # Header files
-├── src/                   # Source code (.cpp files)
-├── leaderboard.csv        # Top scores (global)
-├── users.csv              # All user score history
-├── PDCurses/              # (Optional) Windows-specific curses library
+├── Tetris-All-OS/          # Cross-platform version
+│   ├── include/            # Header files
+│   ├── src/                # Source code (.cpp files)
+│   ├── leaderboard.csv     # Top scores (global)
+│   └── users.csv           # All user score history
+├── PDCurses/               # (Optional) Windows-specific curses library
 ├── Demo Video
 └── README.md
+
 ```
 
 ---
